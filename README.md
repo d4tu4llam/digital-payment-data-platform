@@ -27,3 +27,38 @@ Coming soon.
 ## Project Status
 
 Day 1 - Project initialization
+
+Day 2 
+src/ingestion/
+        ↓
+    mengambil/menghasilkan data
+
+src/transformation/
+        ↓
+    membersihkan/mengubah data
+
+src/validation/
+        ↓
+    mengecek kualitas data
+
+src/monitoring/
+        ↓
+    memantau pipeline
+
+dags/
+    → Airflow DAG
+
+sql/
+    → SQL queries/schema
+
+scripts/
+    → automation
+
+tests/
+    → automated tests
+
+data/
+    → local data
+
+docs/
+    → documentation
