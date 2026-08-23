@@ -1,265 +1,941 @@
-from datetime import datetime, timedelta
 from pathlib import Path
 import random
+import uuid
 
+import numpy as np
 import pandas as pd
-from faker import Faker
 
 
 # ============================================================
-# Configuration
+# CONFIGURATION
 # ============================================================
 
-NUM_TRANSACTIONS = 100_000
+SEED = 42
+
 NUM_USERS = 10_000
 NUM_MERCHANTS = 1_000
-
-RANDOM_SEED = 42
+NUM_TRANSACTIONS = 100_000
 
 OUTPUT_DIR = Path("data/raw")
-OUTPUT_FILE = OUTPUT_DIR / "transactions.csv"
 
-fake = Faker("id_ID")
-Faker.seed(RANDOM_SEED)
-random.seed(RANDOM_SEED)
+random.seed(SEED)
+np.random.seed(SEED)
 
 
 # ============================================================
-# Reference data
+# DATE RANGE
 # ============================================================
 
-PAYMENT_METHODS = [
-    "QRIS",
-    "VIRTUAL_ACCOUNT",
-    "DEBIT_CARD",
-    "CREDIT_CARD",
-    "BALANCE",
-]
+DATA_START = pd.Timestamp("2024-01-01")
+DATA_END = pd.Timestamp("2026-08-23")
 
-STATUSES = [
-    "SUCCESS",
-    "FAILED",
-    "PENDING",
-]
+
+# ============================================================
+# CONSTANTS
+# ============================================================
 
 CITIES = [
     "Jakarta",
     "Bandung",
     "Surabaya",
-    "Semarang",
-    "Yogyakarta",
     "Medan",
+    "Semarang",
     "Makassar",
+    "Yogyakarta",
     "Denpasar",
+    "Palembang",
+    "Tangerang",
+]
+
+USER_STATUSES = [
+    "ACTIVE",
+    "ACTIVE",
+    "ACTIVE",
+    "ACTIVE",
+    "INACTIVE",
+    "SUSPENDED",
+]
+
+WALLET_STATUSES = [
+    "ACTIVE",
+    "ACTIVE",
+    "ACTIVE",
+    "FROZEN",
+    "CLOSED",
+]
+
+MERCHANT_CATEGORIES = [
+    "Food & Beverage",
+    "Retail",
+    "Groceries",
+    "Transportation",
+    "Entertainment",
+    "Healthcare",
+    "Education",
+    "Fashion",
+    "Electronics",
+    "Travel",
+]
+
+MERCHANT_STATUSES = [
+    "ACTIVE",
+    "ACTIVE",
+    "ACTIVE",
+    "ACTIVE",
+    "INACTIVE",
+    "SUSPENDED",
+]
+
+TRANSACTION_TYPES = [
+    "PAYMENT",
+    "TRANSFER",
+    "TOP_UP",
+    "WITHDRAWAL",
+    "REFUND",
+    "BILL_PAYMENT",
+]
+
+TRANSACTION_TYPE_PROBABILITIES = [
+    0.45,  # PAYMENT
+    0.20,  # TRANSFER
+    0.15,  # TOP_UP
+    0.07,  # WITHDRAWAL
+    0.03,  # REFUND
+    0.10,  # BILL_PAYMENT
+]
+
+PAYMENT_METHODS = [
+    "WALLET_BALANCE",
+    "QRIS",
+    "VIRTUAL_ACCOUNT",
+    "DEBIT_CARD",
+    "CREDIT_CARD",
+    "BANK_TRANSFER",
+]
+
+TRANSACTION_STATUSES = [
+    "SUCCESS",
+    "FAILED",
+    "PENDING",
+    "CANCELLED",
+    "REVERSED",
+]
+
+CHANNELS = [
+    "MOBILE_APP",
+    "WEB",
+    "QRIS",
+    "BANK",
+    "ATM",
 ]
 
 
 # ============================================================
-# Generate users
+# UTILITY FUNCTIONS
+# ============================================================
+
+def generate_id(prefix: str, number: int) -> str:
+    return f"{prefix}{number:06d}"
+
+
+def random_timestamp(start, end):
+    start = pd.Timestamp(start)
+    end = pd.Timestamp(end)
+
+    seconds = int((end - start).total_seconds())
+
+    return start + pd.Timedelta(
+        seconds=random.randint(0, seconds)
+    )
+
+
+def weighted_choice(values, probabilities):
+    return np.random.choice(
+        values,
+        p=probabilities,
+    )
+
+
+# ============================================================
+# USERS
 # ============================================================
 
 def generate_users():
-    users = []
+
+    print("Generating users...")
+
+    rows = []
 
     for i in range(1, NUM_USERS + 1):
-        users.append(
-            {
-                "user_id": f"U{i:06d}",
-            }
+
+        registration_date = random_timestamp(
+            DATA_START,
+            DATA_END - pd.Timedelta(days=7),
         )
 
-    return users
+        # Most users remain active
+        status = weighted_choice(
+            USER_STATUSES,
+            [0.02, 0.04, 0.05, 0.75, 0.10, 0.04],
+        )
+
+        rows.append({
+            "user_id": generate_id("U", i),
+
+            "full_name": f"User {i:06d}",
+
+            "phone_number": (
+                f"08{random.randint(1000000000, 9999999999)}"
+            ),
+
+            "email": f"user{i:06d}@example.com",
+
+            "city": random.choice(CITIES),
+
+            "registration_date": registration_date.date(),
+
+            "status": status,
+
+            "created_at": registration_date,
+        })
+
+    return pd.DataFrame(rows)
 
 
 # ============================================================
-# Generate merchants
+# WALLETS
+# ============================================================
+
+def generate_wallets(users):
+
+    print("Generating wallets...")
+
+    rows = []
+
+    for i, user in users.iterrows():
+
+        registration_date = pd.Timestamp(
+            user["registration_date"]
+        )
+
+        # Wallet normally created shortly after registration
+        wallet_created = registration_date + pd.Timedelta(
+            days=random.randint(0, 2),
+            hours=random.randint(0, 23),
+        )
+
+        # Make sure it does not exceed dataset end
+        wallet_created = min(
+            wallet_created,
+            DATA_END,
+        )
+
+        balance = round(
+            np.random.lognormal(
+                mean=11,
+                sigma=1.0,
+            ),
+            2,
+        )
+
+        status = weighted_choice(
+            WALLET_STATUSES,
+            [0.90, 0.04, 0.04, 0.01, 0.01],
+        )
+
+        rows.append({
+            "wallet_id": generate_id("W", i + 1),
+
+            "user_id": user["user_id"],
+
+            "balance": balance,
+
+            "currency": "IDR",
+
+            "status": status,
+
+            "created_at": wallet_created,
+
+            "updated_at": min(
+                wallet_created
+                + pd.Timedelta(
+                    days=random.randint(0, 500)
+                ),
+                DATA_END,
+            ),
+        })
+
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# MERCHANTS
 # ============================================================
 
 def generate_merchants():
-    categories = [
-        "Food",
-        "Retail",
-        "Grocery",
-        "Transportation",
-        "Entertainment",
-        "Healthcare",
-        "Education",
-    ]
-
-    merchants = []
-
-    for i in range(1, NUM_MERCHANTS + 1):
-        merchants.append(
-            {
-                "merchant_id": f"M{i:05d}",
-                "merchant_name": fake.company(),
-                "category": random.choice(categories),
-                "city": random.choice(CITIES),
-            }
-        )
-
-    return merchants
-
-
-# ============================================================
-# Generate transactions
-# ============================================================
-
-def generate_transactions(users, merchants):
-    transactions = []
-
-    start_date = datetime.now() - timedelta(days=30)
-
-    for i in range(1, NUM_TRANSACTIONS + 1):
-        user = random.choice(users)
-        merchant = random.choice(merchants)
-
-        timestamp = start_date + timedelta(
-            seconds=random.randint(0, 30 * 24 * 60 * 60)
-        )
-
-        amount = random.choice(
-            [
-                10_000,
-                15_000,
-                20_000,
-                25_000,
-                50_000,
-                75_000,
-                100_000,
-                150_000,
-                250_000,
-                500_000,
-            ]
-        )
-
-        transactions.append(
-            {
-                "transaction_id": f"TX{i:08d}",
-                "user_id": user["user_id"],
-                "merchant_id": merchant["merchant_id"],
-                "transaction_timestamp": timestamp,
-                "amount": amount,
-                "payment_method": random.choice(PAYMENT_METHODS),
-                "status": random.choices(
-                    STATUSES,
-                    weights=[90, 8, 2],
-                    k=1,
-                )[0],
-                "city": merchant["city"],
-                "currencry":"Rupiah",
-            }
-        )
-
-    return transactions
-
-
-# ============================================================
-# Inject data quality issues
-# ============================================================
-
-def inject_data_quality_issues(df):
-    """
-    Add intentionally corrupted records so that our
-    downstream data-quality pipeline has something to detect.
-    """
-
-    # 1. Duplicate records
-    duplicates = df.sample(
-        # n = random.randint(1, 100) Kalau mau random
-        n=100,
-        random_state=RANDOM_SEED,
-    )
-
-    df = pd.concat(
-        [df, duplicates],
-        ignore_index=True,
-    )
-
-    # 2. Missing user IDs
-    missing_user_indices = df.sample(
-        n=100,
-        random_state=1,
-    ).index
-
-    df.loc[missing_user_indices, "user_id"] = None
-
-    # 3. Negative amounts
-    negative_amount_indices = df.sample(
-        n=100,
-        random_state=2,
-    ).index
-
-    df.loc[
-        negative_amount_indices,
-        "amount",
-    ] *= -1
-
-    # 4. Invalid status
-    invalid_status_indices = df.sample(
-        n=50,
-        random_state=3,
-    ).index
-
-    df.loc[
-        invalid_status_indices,
-        "status",
-    ] = "UNKNOWN"
-
-    # 5. Invalid payment method
-    invalid_payment_indices = df.sample(
-        n=50,
-        random_state=4,
-    ).index
-
-    df.loc[
-        invalid_payment_indices,
-        "payment_method",
-    ] = "CRYPTO"
-
-    return df
-
-
-# ============================================================
-# Main
-# ============================================================
-
-def main():
-    print("Generating users...")
-    users = generate_users()
 
     print("Generating merchants...")
-    merchants = generate_merchants()
 
-    print(f"Generating {NUM_TRANSACTIONS:,} transactions...")
-    transactions = generate_transactions(
-        users,
-        merchants,
+    rows = []
+
+    for i in range(1, NUM_MERCHANTS + 1):
+
+        # Merchant onboarding is spread across the entire period
+        created_at = random_timestamp(
+            pd.Timestamp("2022-01-01"),
+            DATA_END - pd.Timedelta(days=30),
+        )
+
+        category = random.choice(
+            MERCHANT_CATEGORIES
+        )
+
+        # Merchant size influences activity later
+        merchant_size = weighted_choice(
+            ["SMALL", "MEDIUM", "LARGE"],
+            [0.70, 0.25, 0.05],
+        )
+
+        status = weighted_choice(
+            MERCHANT_STATUSES,
+            [0.03, 0.05, 0.04, 0.78, 0.07, 0.03],
+        )
+
+        rows.append({
+            "merchant_id": generate_id("M", i),
+
+            "merchant_name": (
+                f"{category} Merchant {i:05d}"
+            ),
+
+            "category": category,
+
+            "city": random.choice(CITIES),
+
+            "status": status,
+
+            "merchant_size": merchant_size,
+
+            "created_at": created_at,
+        })
+
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# TRANSACTION TIMESTAMP
+# ============================================================
+
+def generate_transaction_timestamp(
+    user_registration_date,
+    merchant_created_at=None,
+):
+
+    start = max(
+        pd.Timestamp(user_registration_date),
+        DATA_START,
     )
 
-    df = pd.DataFrame(transactions)
+    if merchant_created_at is not None:
+        start = max(
+            start,
+            pd.Timestamp(merchant_created_at),
+        )
 
-    print("Injecting data quality issues...")
-    df = inject_data_quality_issues(df)
+    if start >= DATA_END:
+        return None
+
+    # Generate a random date first
+    date = start + pd.Timedelta(
+        days=random.randint(
+            0,
+            max(
+                0,
+                (DATA_END - start).days,
+            ),
+        )
+    )
+
+        # Simulate real-world activity by hour
+    hour_weights = np.array([
+        2,   # 00
+        1,   # 01
+        1,   # 02
+        1,   # 03
+        1,   # 04
+        2,   # 05
+        4,   # 06
+        7,   # 07
+        10,  # 08
+        10,  # 09
+        9,   # 10
+        10,  # 11
+        12,  # 12
+        11,  # 13
+        9,   # 14
+        9,   # 15
+        10,  # 16
+        12,  # 17
+        16,  # 18
+        20,  # 19
+        18,  # 20
+        14,  # 21
+        9,   # 22
+        5,   # 23
+    ], dtype=float)
+
+    hour_probabilities = hour_weights / hour_weights.sum()
+
+    hour = weighted_choice(
+        list(range(24)),
+        hour_probabilities,
+    )
+        
+
+    minute = random.randint(0, 59)
+    second = random.randint(0, 59)
+
+    return date.normalize() + pd.Timedelta(
+        hours=int(hour),
+        minutes=minute,
+        seconds=second,
+    )
+
+
+# ============================================================
+# AMOUNT GENERATION
+# ============================================================
+
+def generate_amount(
+    transaction_type,
+    merchant_category=None,
+):
+
+    if transaction_type == "PAYMENT":
+
+        category_ranges = {
+            "Food & Beverage": (15_000, 250_000),
+            "Retail": (25_000, 1_000_000),
+            "Groceries": (30_000, 750_000),
+            "Transportation": (10_000, 300_000),
+            "Entertainment": (30_000, 500_000),
+            "Healthcare": (50_000, 2_000_000),
+            "Education": (50_000, 3_000_000),
+            "Fashion": (50_000, 2_000_000),
+            "Electronics": (100_000, 10_000_000),
+            "Travel": (100_000, 15_000_000),
+        }
+
+        low, high = category_ranges.get(
+            merchant_category,
+            (10_000, 500_000),
+        )
+
+        # Log-normal gives more realistic long-tail spending
+        amount = np.random.lognormal(
+            mean=np.log((low + high) / 2),
+            sigma=0.6,
+        )
+
+        return round(
+            min(max(amount, low), high),
+            2,
+        )
+
+    if transaction_type == "TRANSFER":
+
+        return round(
+            np.random.lognormal(
+                mean=np.log(300_000),
+                sigma=1.0,
+            ),
+            2,
+        )
+
+    if transaction_type == "TOP_UP":
+
+        return random.choice([
+            20_000,
+            50_000,
+            100_000,
+            200_000,
+            500_000,
+            1_000_000,
+            2_000_000,
+            5_000_000,
+        ])
+
+    if transaction_type == "WITHDRAWAL":
+
+        return random.choice([
+            50_000,
+            100_000,
+            200_000,
+            500_000,
+            1_000_000,
+            2_000_000,
+        ])
+
+    if transaction_type == "REFUND":
+
+        return round(
+            np.random.uniform(
+                10_000,
+                1_000_000,
+            ),
+            2,
+        )
+
+    if transaction_type == "BILL_PAYMENT":
+
+        return round(
+            np.random.uniform(
+                20_000,
+                2_000_000,
+            ),
+            2,
+        )
+
+    raise ValueError(
+        f"Unknown transaction type: {transaction_type}"
+    )
+
+
+# ============================================================
+# PAYMENT METHOD
+# ============================================================
+
+def generate_payment_method(transaction_type):
+
+    if transaction_type == "TRANSFER":
+
+        return "WALLET_BALANCE"
+
+    if transaction_type == "TOP_UP":
+
+        return weighted_choice(
+            [
+                "VIRTUAL_ACCOUNT",
+                "BANK_TRANSFER",
+                "DEBIT_CARD",
+                "CREDIT_CARD",
+            ],
+            [
+                0.35,
+                0.35,
+                0.20,
+                0.10,
+            ],
+        )
+
+    if transaction_type == "WITHDRAWAL":
+
+        return weighted_choice(
+            [
+                "BANK_TRANSFER",
+                "WALLET_BALANCE",
+            ],
+            [
+                0.80,
+                0.20,
+            ],
+        )
+
+    if transaction_type == "PAYMENT":
+
+        return weighted_choice(
+            PAYMENT_METHODS,
+            [
+                0.20,
+                0.35,
+                0.10,
+                0.10,
+                0.05,
+                0.20,
+            ],
+        )
+
+    if transaction_type == "BILL_PAYMENT":
+
+        return weighted_choice(
+            [
+                "WALLET_BALANCE",
+                "VIRTUAL_ACCOUNT",
+                "BANK_TRANSFER",
+            ],
+            [
+                0.60,
+                0.20,
+                0.20,
+            ],
+        )
+
+    if transaction_type == "REFUND":
+
+        return "WALLET_BALANCE"
+
+    return "WALLET_BALANCE"
+
+
+# ============================================================
+# TRANSACTION STATUS
+# ============================================================
+
+def generate_status(transaction_type):
+
+    if transaction_type == "TRANSFER":
+
+        probabilities = [
+            0.93,
+            0.035,
+            0.015,
+            0.015,
+            0.005,
+        ]
+
+    elif transaction_type == "TOP_UP":
+
+        probabilities = [
+            0.97,
+            0.02,
+            0.005,
+            0.004,
+            0.001,
+        ]
+
+    elif transaction_type == "WITHDRAWAL":
+
+        probabilities = [
+            0.94,
+            0.03,
+            0.01,
+            0.015,
+            0.005,
+        ]
+
+    else:
+
+        probabilities = [
+            0.94,
+            0.03,
+            0.015,
+            0.01,
+            0.005,
+        ]
+
+    return weighted_choice(
+        TRANSACTION_STATUSES,
+        probabilities,
+    )
+
+
+# ============================================================
+# TRANSACTIONS
+# ============================================================
+
+def generate_transactions(
+    users,
+    wallets,
+    merchants,
+):
+
+    print(
+        f"Generating {NUM_TRANSACTIONS:,} transactions..."
+    )
+
+    user_records = users.to_dict("records")
+    merchant_records = merchants.to_dict("records")
+
+    merchant_weights = []
+
+    for merchant in merchant_records:
+
+        size = merchant["merchant_size"]
+
+        if size == "SMALL":
+            weight = 1
+
+        elif size == "MEDIUM":
+            weight = 4
+
+        else:
+            weight = 12
+
+        merchant_weights.append(weight)
+
+    rows = []
+
+    transaction_id = 1
+
+    while transaction_id <= NUM_TRANSACTIONS:
+
+        user = random.choice(user_records)
+
+        transaction_type = weighted_choice(
+            TRANSACTION_TYPES,
+            TRANSACTION_TYPE_PROBABILITIES,
+        )
+
+        merchant = None
+
+        # ----------------------------------------------------
+        # Merchant-related transactions
+        # ----------------------------------------------------
+
+        if transaction_type in [
+            "PAYMENT",
+            "REFUND",
+            "BILL_PAYMENT",
+        ]:
+
+            merchant = random.choices(
+                merchant_records,
+                weights=merchant_weights,
+                k=1,
+            )[0]
+
+            timestamp = generate_transaction_timestamp(
+                user["registration_date"],
+                merchant["created_at"],
+            )
+
+        else:
+
+            timestamp = generate_transaction_timestamp(
+                user["registration_date"]
+            )
+
+        if timestamp is None:
+            continue
+
+        # ----------------------------------------------------
+        # Counterparty
+        # ----------------------------------------------------
+
+        counterparty_user_id = None
+
+        if transaction_type == "TRANSFER":
+
+            counterparty = random.choice(
+                user_records
+            )
+
+            while (
+                counterparty["user_id"]
+                == user["user_id"]
+            ):
+                counterparty = random.choice(
+                    user_records
+                )
+
+            counterparty_user_id = (
+                counterparty["user_id"]
+            )
+
+        # ----------------------------------------------------
+        # Amount
+        # ----------------------------------------------------
+
+        merchant_category = (
+            merchant["category"]
+            if merchant
+            else None
+        )
+
+        amount = generate_amount(
+            transaction_type,
+            merchant_category,
+        )
+
+        # ----------------------------------------------------
+        # Payment method
+        # ----------------------------------------------------
+
+        payment_method = generate_payment_method(
+            transaction_type
+        )
+
+        # ----------------------------------------------------
+        # Status
+        # ----------------------------------------------------
+
+        status = generate_status(
+            transaction_type
+        )
+
+        # ----------------------------------------------------
+        # Channel
+        # ----------------------------------------------------
+
+        if transaction_type == "TOP_UP":
+
+            channel = weighted_choice(
+                ["MOBILE_APP", "WEB", "BANK"],
+                [0.50, 0.10, 0.40],
+            )
+
+        elif transaction_type == "WITHDRAWAL":
+
+            channel = weighted_choice(
+                ["MOBILE_APP", "BANK", "ATM"],
+                [0.20, 0.50, 0.30],
+            )
+
+        elif transaction_type == "PAYMENT":
+
+            channel = weighted_choice(
+                ["MOBILE_APP", "QRIS", "WEB"],
+                [0.40, 0.50, 0.10],
+            )
+
+        else:
+
+            channel = weighted_choice(
+                CHANNELS,
+                [0.45, 0.15, 0.15, 0.15, 0.10],
+            )
+
+        rows.append({
+            "transaction_id": generate_id(
+                "TX",
+                transaction_id,
+            ),
+
+            "wallet_id": wallets.loc[
+                wallets["user_id"]
+                == user["user_id"],
+                "wallet_id",
+            ].iloc[0],
+
+            "user_id": user["user_id"],
+
+            "merchant_id": (
+                merchant["merchant_id"]
+                if merchant
+                else None
+            ),
+
+            "counterparty_user_id":
+                counterparty_user_id,
+
+            "transaction_type_id":
+                TRANSACTION_TYPES.index(
+                    transaction_type
+                ) + 1,
+
+            "payment_method_id":
+                PAYMENT_METHODS.index(
+                    payment_method
+                ) + 1,
+
+            "transaction_status_id":
+                TRANSACTION_STATUSES.index(
+                    status
+                ) + 1,
+
+            "amount": amount,
+
+            "transaction_timestamp":
+                timestamp,
+
+            "channel": channel,
+
+            "reference_number":
+                f"REF-{uuid.uuid4().hex[:16].upper()}",
+
+            "created_at": timestamp,
+        })
+
+        transaction_id += 1
+
+    return pd.DataFrame(rows)
+
+
+# ============================================================
+# SAVE
+# ============================================================
+
+def save_data(
+    users,
+    wallets,
+    merchants,
+    transactions,
+):
 
     OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    df.to_csv(
-        OUTPUT_FILE,
+    users.to_csv(
+        OUTPUT_DIR / "users.csv",
+        index=False,
+    )
+
+    wallets.to_csv(
+        OUTPUT_DIR / "wallets.csv",
+        index=False,
+    )
+
+    merchants.to_csv(
+        OUTPUT_DIR / "merchants.csv",
+        index=False,
+    )
+
+    transactions.to_csv(
+        OUTPUT_DIR / "transactions.csv",
         index=False,
     )
 
     print()
-    print("=" * 50)
+    print("=" * 60)
     print("DATA GENERATION COMPLETE")
-    print("=" * 50)
-    print(f"Output file : {OUTPUT_FILE}")
-    print(f"Rows        : {len(df):,}")
-    print(f"Columns     : {len(df.columns)}")
-    print("=" * 50)
+    print("=" * 60)
+
+    print(f"Users        : {len(users):,}")
+    print(f"Wallets      : {len(wallets):,}")
+    print(f"Merchants    : {len(merchants):,}")
+    print(f"Transactions : {len(transactions):,}")
+
+    print()
+    print("Transaction distribution:")
+    print(
+        transactions["transaction_type_id"]
+        .value_counts()
+        .sort_index()
+    )
+
+    print()
+    print(f"Output directory: {OUTPUT_DIR}")
+    print("=" * 60)
+
+
+# ============================================================
+# MAIN
+# ============================================================
+
+def main():
+
+    users = generate_users()
+
+    wallets = generate_wallets(
+        users
+    )
+
+    merchants = generate_merchants()
+
+    transactions = generate_transactions(
+        users,
+        wallets,
+        merchants,
+    )
+
+    save_data(
+        users,
+        wallets,
+        merchants,
+        transactions,
+    )
 
 
 if __name__ == "__main__":
