@@ -15,5 +15,50 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+
+  airflow:
+    image: apache/airflow:2.10.5
+    container_name: payment-airflow
+    restart: unless-stopped
+
+    depends_on:
+      - postgres
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+      # Important:
+      # inside Docker, PostgreSQL is accessed using service name "postgres"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: payment_db
+      DB_USER: payment_user
+      DB_PASSWORD: payment_password
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./sql:/opt/airflow/sql
+
+    command: >
+      bash -c "
+      airflow db migrate &&
+      airflow users create
+      --username admin
+      --password admin
+      --firstname Admin
+      --lastname User
+      --role Admin
+      --email admin@example.com || true &&
+      airflow webserver &
+      airflow scheduler
+      "
+
+
 volumes:
   postgres_data:
