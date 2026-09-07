@@ -16,7 +16,7 @@ NUM_USERS = 10_000
 NUM_MERCHANTS = 1_000
 NUM_TRANSACTIONS = 100_000
 
-OUTPUT_DIR = Path("data/raw")
+OUTPUT_DIR = Path("data/source_seed")
 
 random.seed(SEED)
 np.random.seed(SEED)

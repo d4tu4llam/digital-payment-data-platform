@@ -40,8 +40,14 @@ CREATE TABLE IF NOT EXISTS source.merchants (
     merchant_name VARCHAR(150) NOT NULL,
     category VARCHAR(100) NOT NULL,
     city VARCHAR(100),
+
+    merchant_size VARCHAR(20) NOT NULL,
+
     status VARCHAR(30) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_merchant_size
+        CHECK (merchant_size IN ('SMALL', 'MEDIUM', 'LARGE')),
 
     CONSTRAINT chk_merchant_status
         CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED'))
