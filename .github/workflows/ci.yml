@@ -151,8 +151,15 @@ jobs:
       - name: Extract source to raw
         run: |
           python src/ingestion/extract_source_to_raw.py
-
-
+    
+      - name: Inject controlled bad transactions
+        run: |
+          psql \
+            -h 127.0.0.1 \
+            -U payment_user \
+            -d payment_db \
+            -f sql/tests/01_inject_bad_transactions.sql
+            
       - name: Quarantine invalid transactions
         run: |
           psql \
