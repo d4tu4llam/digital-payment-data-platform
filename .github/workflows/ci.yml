@@ -38,7 +38,7 @@ jobs:
       DB_NAME: payment_db
       DB_USER: payment_user
       DB_PASSWORD: payment_password
-
+      PGPASSWORD: payment_password
 
     steps:
       - name: Checkout repository
