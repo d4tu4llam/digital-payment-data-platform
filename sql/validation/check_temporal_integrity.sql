@@ -6,8 +6,8 @@
 SELECT
     'transaction_timestamp >= user.registration_date' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.users u
+FROM raw.transactions t
+JOIN raw.users u
     ON t.user_id = u.user_id
 WHERE t.transaction_timestamp < u.registration_date;
 
@@ -16,8 +16,8 @@ WHERE t.transaction_timestamp < u.registration_date;
 SELECT
     'transaction_timestamp >= wallet.created_at' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.wallets w
+FROM raw.transactions t
+JOIN raw.wallets w
     ON t.wallet_id = w.wallet_id
 WHERE t.transaction_timestamp < w.created_at;
 
@@ -26,8 +26,8 @@ WHERE t.transaction_timestamp < w.created_at;
 SELECT
     'merchant transaction >= merchant.created_at' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.merchants m
+FROM raw.transactions t
+JOIN raw.merchants m
     ON t.merchant_id = m.merchant_id
 WHERE t.merchant_id IS NOT NULL
   AND t.transaction_timestamp < m.created_at;
@@ -37,8 +37,8 @@ WHERE t.merchant_id IS NOT NULL
 SELECT
     'wallet.created_at >= user.registration_date' AS check_name,
     COUNT(*) AS failed_records
-FROM source.wallets w
-JOIN source.users u
+FROM raw.wallets w
+JOIN raw.users u
     ON w.user_id = u.user_id
 WHERE w.created_at < u.registration_date;
 
@@ -47,7 +47,7 @@ WHERE w.created_at < u.registration_date;
 SELECT
     'wallet.updated_at >= wallet.created_at' AS check_name,
     COUNT(*) AS failed_records
-FROM source.wallets
+FROM raw.wallets
 WHERE updated_at < created_at;
 
 
@@ -55,5 +55,5 @@ WHERE updated_at < created_at;
 SELECT
     'transaction.created_at >= transaction_timestamp' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions
+FROM raw.transactions
 WHERE created_at < transaction_timestamp;

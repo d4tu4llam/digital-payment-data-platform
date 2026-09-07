@@ -6,8 +6,8 @@
 SELECT
     'transactions.user_id -> users.user_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-LEFT JOIN source.users u
+FROM raw.transactions t
+LEFT JOIN raw.users u
     ON t.user_id = u.user_id
 WHERE u.user_id IS NULL;
 
@@ -16,8 +16,8 @@ WHERE u.user_id IS NULL;
 SELECT
     'transactions.wallet_id -> wallets.wallet_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-LEFT JOIN source.wallets w
+FROM raw.transactions t
+LEFT JOIN raw.wallets w
     ON t.wallet_id = w.wallet_id
 WHERE w.wallet_id IS NULL;
 
@@ -27,8 +27,8 @@ WHERE w.wallet_id IS NULL;
 SELECT
     'transactions.merchant_id -> merchants.merchant_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-LEFT JOIN source.merchants m
+FROM raw.transactions t
+LEFT JOIN raw.merchants m
     ON t.merchant_id = m.merchant_id
 WHERE t.merchant_id IS NOT NULL
   AND m.merchant_id IS NULL;
@@ -39,8 +39,8 @@ WHERE t.merchant_id IS NOT NULL
 SELECT
     'transactions.counterparty_user_id -> users.user_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-LEFT JOIN source.users u
+FROM raw.transactions t
+LEFT JOIN raw.users u
     ON t.counterparty_user_id = u.user_id
 WHERE t.counterparty_user_id IS NOT NULL
   AND u.user_id IS NULL;
@@ -50,8 +50,8 @@ WHERE t.counterparty_user_id IS NOT NULL
 SELECT
     'transactions.transaction_type_id -> transaction_types' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-LEFT JOIN source.transaction_types tt
+FROM raw.transactions t
+LEFT JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type_id IS NULL;
 
@@ -60,8 +60,8 @@ WHERE tt.transaction_type_id IS NULL;
 SELECT
     'transactions.payment_method_id -> payment_methods' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-LEFT JOIN source.payment_methods pm
+FROM raw.transactions t
+LEFT JOIN raw.payment_methods pm
     ON t.payment_method_id = pm.payment_method_id
 WHERE pm.payment_method_id IS NULL;
 
@@ -70,8 +70,8 @@ WHERE pm.payment_method_id IS NULL;
 SELECT
     'transactions.transaction_status_id -> transaction_statuses' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-LEFT JOIN source.transaction_statuses ts
+FROM raw.transactions t
+LEFT JOIN raw.transaction_statuses ts
     ON t.transaction_status_id = ts.transaction_status_id
 WHERE ts.transaction_status_id IS NULL;
 
@@ -81,7 +81,7 @@ WHERE ts.transaction_status_id IS NULL;
 SELECT
     'transaction wallet belongs to transaction user' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.wallets w
+FROM raw.transactions t
+JOIN raw.wallets w
     ON t.wallet_id = w.wallet_id
 WHERE t.user_id <> w.user_id;

@@ -8,7 +8,7 @@ SELECT
     COUNT(*) AS duplicate_groups
 FROM (
     SELECT user_id
-    FROM source.users
+    FROM raw.users
     GROUP BY user_id
     HAVING COUNT(*) > 1
 ) dup;
@@ -20,7 +20,7 @@ SELECT
     COUNT(*) AS duplicate_groups
 FROM (
     SELECT wallet_id
-    FROM source.wallets
+    FROM raw.wallets
     GROUP BY wallet_id
     HAVING COUNT(*) > 1
 ) dup;
@@ -32,7 +32,7 @@ SELECT
     COUNT(*) AS duplicate_groups
 FROM (
     SELECT merchant_id
-    FROM source.merchants
+    FROM raw.merchants
     GROUP BY merchant_id
     HAVING COUNT(*) > 1
 ) dup;
@@ -44,7 +44,7 @@ SELECT
     COUNT(*) AS duplicate_groups
 FROM (
     SELECT transaction_id
-    FROM source.transactions
+    FROM raw.transactions
     GROUP BY transaction_id
     HAVING COUNT(*) > 1
 ) dup;
@@ -56,7 +56,7 @@ SELECT
     COUNT(*) AS duplicate_groups
 FROM (
     SELECT reference_number
-    FROM source.transactions
+    FROM raw.transactions
     WHERE reference_number IS NOT NULL
     GROUP BY reference_number
     HAVING COUNT(*) > 1

@@ -6,8 +6,8 @@
 SELECT
     'PAYMENT requires merchant_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'PAYMENT'
   AND t.merchant_id IS NULL;
@@ -17,8 +17,8 @@ WHERE tt.transaction_type = 'PAYMENT'
 SELECT
     'PAYMENT must not have counterparty_user_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'PAYMENT'
   AND t.counterparty_user_id IS NOT NULL;
@@ -28,8 +28,8 @@ WHERE tt.transaction_type = 'PAYMENT'
 SELECT
     'TRANSFER requires counterparty_user_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'TRANSFER'
   AND t.counterparty_user_id IS NULL;
@@ -39,8 +39,8 @@ WHERE tt.transaction_type = 'TRANSFER'
 SELECT
     'TRANSFER must not have merchant_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'TRANSFER'
   AND t.merchant_id IS NOT NULL;
@@ -50,8 +50,8 @@ WHERE tt.transaction_type = 'TRANSFER'
 SELECT
     'TRANSFER cannot target sender' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'TRANSFER'
   AND t.counterparty_user_id = t.user_id;
@@ -61,8 +61,8 @@ WHERE tt.transaction_type = 'TRANSFER'
 SELECT
     'TOP_UP must not have merchant_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'TOP_UP'
   AND t.merchant_id IS NOT NULL;
@@ -72,8 +72,8 @@ WHERE tt.transaction_type = 'TOP_UP'
 SELECT
     'TOP_UP must not have counterparty_user_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'TOP_UP'
   AND t.counterparty_user_id IS NOT NULL;
@@ -83,8 +83,8 @@ WHERE tt.transaction_type = 'TOP_UP'
 SELECT
     'WITHDRAWAL must not have merchant_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'WITHDRAWAL'
   AND t.merchant_id IS NOT NULL;
@@ -94,8 +94,8 @@ WHERE tt.transaction_type = 'WITHDRAWAL'
 SELECT
     'WITHDRAWAL must not have counterparty_user_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'WITHDRAWAL'
   AND t.counterparty_user_id IS NOT NULL;
@@ -105,8 +105,8 @@ WHERE tt.transaction_type = 'WITHDRAWAL'
 SELECT
     'REFUND requires merchant_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'REFUND'
   AND t.merchant_id IS NULL;
@@ -116,8 +116,8 @@ WHERE tt.transaction_type = 'REFUND'
 SELECT
     'BILL_PAYMENT requires merchant_id' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions t
-JOIN source.transaction_types tt
+FROM raw.transactions t
+JOIN raw.transaction_types tt
     ON t.transaction_type_id = tt.transaction_type_id
 WHERE tt.transaction_type = 'BILL_PAYMENT'
   AND t.merchant_id IS NULL;
@@ -127,7 +127,7 @@ WHERE tt.transaction_type = 'BILL_PAYMENT'
 SELECT
     'transaction amount must be > 0' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions
+FROM raw.transactions
 WHERE amount <= 0;
 
 
@@ -135,7 +135,7 @@ WHERE amount <= 0;
 SELECT
     'reference_number must not be null' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions
+FROM raw.transactions
 WHERE reference_number IS NULL;
 
 
@@ -143,5 +143,5 @@ WHERE reference_number IS NULL;
 SELECT
     'channel must not be null' AS check_name,
     COUNT(*) AS failed_records
-FROM source.transactions
+FROM raw.transactions
 WHERE channel IS NULL;
