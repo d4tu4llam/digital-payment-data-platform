@@ -1,427 +1,655 @@
 # Digital Payment Data Platform
 
-An end-to-end data engineering project that simulates a digital wallet and payment data platform.
+Digital Payment Data Platform adalah project data engineering end-to-end yang mensimulasikan alur data transaksi digital dari source system sampai analytical data warehouse.
 
-The project is designed to demonstrate how transactional data can be generated, stored, validated, transformed, modeled, orchestrated, monitored, and prepared for analytics in a production-like data engineering workflow.
-
----
-
-## Objective
-
-Build a reliable and scalable data platform for synthetic digital payment transactions.
-
-The project focuses on:
-
-* Data ingestion
-* ETL / ELT pipelines
-* Data quality validation
-* Relational data modeling
-* Data warehouse modeling
-* Workflow orchestration
-* Pipeline monitoring
-* Cloud-based data platforms
-* Automation
-* Testing
-* CI/CD
-* Technical documentation
-
-The overall architecture is designed to resemble the responsibilities commonly handled by a Data Engineering or Data Warehouse team in a fintech environment.
+Project ini mencakup proses ingestion, data quality checking, quarantine untuk data invalid, transformation, data warehouse modeling, orchestration dengan Apache Airflow, monitoring, automated testing, dan CI menggunakan GitHub Actions.
 
 ---
 
-## Project Scope
+## 1. Project Overview
 
-The platform simulates several types of digital-wallet transactions:
+Dataset dibuat secara sintetis untuk merepresentasikan beberapa entitas utama:
 
-* Payment
-* Transfer
-* Top Up
-* Withdrawal
-* Refund
-* Bill Payment
+- Users
+- Wallets
+- Merchants
+- Transactions
+- Transaction Types
+- Payment Methods
+- Transaction Statuses
 
-The synthetic source system contains:
+Alur utama pipeline:
 
-* Users
-* Wallets
-* Merchants
-* Transactions
-* Transaction Types
-* Payment Methods
-* Transaction Statuses
+Synthetic Data
+↓
+Operational Source
+↓
+Raw Layer
+↓
+Data Quality & Quarantine
+↓
+Staging Layer
+↓
+Analytics / Data Warehouse
+↓
+Business Queries
 
-The generated dataset is designed to include realistic variation in:
-
-* User registration dates
-* Merchant onboarding dates
-* Transaction timestamps
-* Transaction amounts
-* Merchant categories
-* Merchant sizes
-* Transaction types
-* Payment methods
-* Transaction statuses
-* Transaction channels
+Pipeline lokal diorkestrasi menggunakan Apache Airflow.
 
 ---
 
-## Planned Architecture
+## 2. Objectives
 
-```text
+Project ini dibuat untuk mempraktikkan beberapa komponen yang umum digunakan dalam data engineering:
+
+- Data ingestion menggunakan Python dan SQL
+- Relational database design
+- ETL / ELT pipeline
+- Data quality validation
+- Quarantine untuk data invalid
+- Data transformation
+- Data warehouse modeling
+- Star schema
+- Apache Airflow orchestration
+- Pipeline monitoring
+- Automated testing dengan pytest
+- Continuous Integration menggunakan GitHub Actions
+- Docker-based local environment
+
+---
+
+## 3. Architecture
+
+Arsitektur lokal project:
+
 Synthetic Data Generator
-          │
-          ▼
-   PostgreSQL Source
-          │
-          ▼
-       Raw Layer
-          │
-          ▼
- Data Quality Validation
-          │
-     ┌────┴────┐
-     ▼         ▼
-   Valid     Invalid
-     │         │
-     ▼         ▼
-  Staging   Quarantine
-     │
-     ▼
- Transformation
-     │
-     ▼
- Data Warehouse
-     │
-     ▼
- Analytical Models
-     │
-     ▼
- Analytics / Dashboard
-```
+        ↓
+data/source_seed/*.csv
+        ↓
+PostgreSQL source.*
+        ↓
+Extract
+        ↓
+PostgreSQL raw.*
+        ↓
+Data Quality Check
+        ↓
+Quarantine Invalid Records
+        ↓
+Quality Threshold
+        ↓
+PostgreSQL staging.*
+        ↓
+Transform
+        ↓
+PostgreSQL analytics.*
+        ↓
+Business Queries
 
-The pipeline will later be orchestrated and monitored using Apache Airflow.
+Task Airflow:
 
-Cloud components will include Google Cloud Storage and BigQuery.
-
----
-
-## Technology Stack
-
-### Programming
-
-* Python
-* SQL
-* Bash
-
-### Database and Data Warehouse
-
-* PostgreSQL
-* BigQuery
-
-### Workflow Orchestration
-
-* Apache Airflow
-
-### Cloud
-
-* Google Cloud Platform
-* Google Cloud Storage
-* BigQuery
-
-### Containerization
-
-* Docker
-* Docker Compose
-
-### Testing
-
-* pytest
-
-### Version Control and CI/CD
-
-* Git
-* GitHub
-* GitHub Actions
-
-### Monitoring and Automation
-
-* Python automation scripts
-* Pipeline monitoring
-* Logging
-* Data quality checks
-* Alerting
+start_monitoring
+        ↓
+extract_source_to_raw
+        ↓
+quarantine_invalid_transactions
+        ↓
+check_quality_threshold
+        ↓
+load_staging
+        ↓
+load_dimensions
+        ↓
+load_fact_transactions
 
 ---
 
-## Current Relational Data Model
+## 4. Technology Stack
 
-The operational source database is normalized into several related tables.
-
-```text
-users
-  │
-  │ 1:1
-  ▼
-wallets
-  │
-  │ 1:N
-  ▼
-transactions
-  │
-  ├── merchants
-  ├── transaction_types
-  ├── payment_methods
-  └── transaction_statuses
-```
-
-The `transactions` table also references `users` through `counterparty_user_id` for user-to-user transfers.
-
-### Main Relationships
-
-```text
-users 1 ─── 1 wallets
-
-users 1 ─── N transactions
-
-wallets 1 ─── N transactions
-
-merchants 1 ─── N transactions
-
-transaction_types 1 ─── N transactions
-
-payment_methods 1 ─── N transactions
-
-transaction_statuses 1 ─── N transactions
-```
-
-For transfer transactions:
-
-```text
-transactions.user_id
-        │
-        ▼
-     sender user
-
-transactions.counterparty_user_id
-        │
-        ▼
-    receiver user
-```
+| Technology | Usage |
+|---|---|
+| Python | Data generation, ingestion, validation, monitoring |
+| PostgreSQL | Source, raw, staging, analytics warehouse |
+| SQLAlchemy | Database connection dari Python |
+| SQL | Validation, transformation, warehouse modeling |
+| Docker | Menjalankan PostgreSQL dan Airflow |
+| Docker Compose | Mengatur service lokal |
+| Apache Airflow | Pipeline orchestration |
+| pytest | Automated testing |
+| Git | Version control |
+| GitHub Actions | Continuous Integration |
+| Pandas | Synthetic data generation dan profiling |
+| NumPy | Data distribution dan random generation |
 
 ---
 
-## Data Layers
+## 5. Data Layers
 
-The project separates data processing into multiple layers.
+### Source Layer
 
-### Source
+Schema:
 
-Represents the simulated transactional application database.
+source.*
 
-```text
+Source layer mensimulasikan operational database dari aplikasi pembayaran digital.
+
+Tables:
+
 source.users
 source.wallets
 source.merchants
-source.transactions
 source.transaction_types
 source.payment_methods
 source.transaction_statuses
-```
+source.transactions
 
-### Raw
+Data awal dibuat menggunakan synthetic data generator lalu dimasukkan ke PostgreSQL.
 
-Stores extracted data with minimal modification.
+### Raw Layer
 
-Purpose:
+Schema:
 
-* Preserve source data
-* Enable reprocessing
-* Support auditing
-* Maintain historical ingestion records
+raw.*
 
-### Staging
+Raw layer berfungsi sebagai landing area hasil ingestion dari source.
 
-Contains cleaned and standardized data before warehouse transformation.
+Tables:
 
-Typical operations include:
+raw.users
+raw.wallets
+raw.merchants
+raw.transaction_types
+raw.payment_methods
+raw.transaction_statuses
+raw.transactions
 
-* Data type conversion
-* Deduplication
-* Standardization
-* Validation
-* Null handling
+Raw layer menggunakan constraint minimal supaya data bermasalah tetap bisa diterima dan diperiksa pada tahap berikutnya.
 
-### Analytics
+Setiap table memiliki metadata:
 
-Contains analytical models designed for reporting and business analysis.
+ingested_at
 
-Planned warehouse model:
+### Quarantine Layer
 
-```text
-                       dim_users
-                           │
-                           │
-                           ▼
-dim_merchants ──── fact_transactions ──── dim_date
-                           │
-                    ┌──────┴──────┐
-                    ▼             ▼
-          dim_transaction   dim_payment
-              _types          _methods
-```
+Schema:
+
+quarantine.*
+
+Data invalid tidak langsung dibuang. Record yang gagal quality rule disimpan di:
+
+quarantine.transactions
+
+Informasi yang disimpan meliputi:
+
+transaction_id
+validation_rule
+failure_reason
+quarantined_at
+
+Contoh validation rule:
+
+POSITIVE_AMOUNT
+VALID_USER
+VALID_WALLET
+WALLET_OWNERSHIP
+VALID_MERCHANT
+TRANSFER_COUNTERPARTY
+TRANSFER_SELF
+PAYMENT_MERCHANT
+WALLET_TEMPORAL
+MERCHANT_TEMPORAL
+
+Dengan cara ini, data invalid masih bisa diperiksa tanpa masuk ke downstream layer.
 
 ---
 
-## Project Structure
+## 6. Data Quality Threshold
 
-```text
+Pipeline menggunakan threshold untuk menentukan apakah jumlah data invalid masih bisa ditoleransi.
+
+Default threshold:
+
+5%
+
+Contoh hasil:
+
+Raw transactions          : 100,003
+Quarantined transactions  : 3
+Valid transactions        : 100,000
+Invalid ratio             : 0.0030%
+Threshold                 : 5.00%
+
+Karena invalid ratio masih di bawah threshold, pipeline tetap dilanjutkan.
+
+Jika invalid ratio melebihi 5%, pipeline dihentikan sebelum data masuk ke staging.
+
+---
+
+## 7. Staging Layer
+
+Schema:
+
+staging.*
+
+Staging layer berisi data yang sudah dibersihkan dan distandardisasi.
+
+Transformasi yang dilakukan antara lain:
+
+- TRIM pada string
+- UPPER untuk status atau kode tertentu
+- LOWER untuk email
+- Normalisasi empty string menjadi NULL
+- Exclude transaksi yang sudah masuk quarantine
+
+Secara sederhana:
+
+staging transactions
+=
+raw transactions
+-
+quarantined transactions
+
+---
+
+## 8. Analytics Layer
+
+Schema:
+
+analytics.*
+
+Analytics layer menggunakan star schema.
+
+Core tables:
+
+analytics.dim_users
+analytics.dim_merchants
+analytics.dim_transaction_types
+analytics.dim_date
+analytics.fact_transactions
+
+Struktur sederhananya:
+
+dim_users
+    |
+    |
+fact_transactions
+    |
+    +---- dim_merchants
+    |
+    +---- dim_transaction_types
+    |
+    +---- dim_date
+
+---
+
+## 9. Fact and Dimension
+
+Dimension table menyimpan informasi deskriptif.
+
+Contoh:
+
+dim_users
+
+berisi:
+
+user_id
+full_name
+city
+registration_date
+status
+
+Fact table menyimpan business event utama.
+
+Dalam project ini:
+
+fact_transactions
+
+berisi informasi seperti:
+
+transaction_id
+date_key
+user_key
+merchant_key
+transaction_type_key
+amount
+transaction_timestamp
+channel
+
+---
+
+## 10. Surrogate Key
+
+Source system menggunakan ID seperti:
+
+U000123
+M000040
+
+Di analytics layer dibuat juga internal key seperti:
+
+user_key
+merchant_key
+transaction_type_key
+
+Contoh:
+
+user_key | user_id
+---------+---------
+1        | U000001
+2        | U000002
+
+user_id tetap digunakan sebagai business key dari source, sedangkan user_key digunakan sebagai internal key di data warehouse.
+
+---
+
+## 11. Airflow Orchestration
+
+DAG utama:
+
+digital_payment_pipeline
+
+Task flow:
+
+start_monitoring
+        ↓
+extract_source_to_raw
+        ↓
+quarantine_invalid_transactions
+        ↓
+check_quality_threshold
+        ↓
+load_staging
+        ↓
+load_dimensions
+        ↓
+load_fact_transactions
+
+Jika salah satu task gagal, downstream task tidak dijalankan.
+
+DAG dapat di-trigger manual melalui Airflow UI.
+
+---
+
+## 12. Pipeline Monitoring
+
+Pipeline run dicatat ke:
+
+monitoring.pipeline_run_log
+
+Kolom yang dicatat:
+
+run_id
+pipeline_name
+status
+started_at
+finished_at
+rows_processed
+error_message
+
+Status yang digunakan:
+
+RUNNING
+SUCCESS
+FAILED
+
+Monitoring ini dipakai untuk melihat histori execution pipeline dan jumlah row yang berhasil diproses.
+
+---
+
+## 13. Automated Testing
+
+Automated testing menggunakan pytest.
+
+Test yang tersedia antara lain:
+
+- Source-to-raw consistency
+- Staging row-count consistency
+- Quarantine exclusion
+- Staging-to-fact consistency
+- Fact table tidak kosong
+- Transaction amount harus positif
+- User key integrity
+- Merchant key integrity
+- Transaction type key integrity
+- Date key integrity
+- Data quality threshold
+
+Run locally:
+
+pytest -v
+
+---
+
+## 14. Controlled Bad Data Test
+
+Untuk menguji quarantine flow, tersedia fixture:
+
+sql/tests/01_inject_bad_transactions.sql
+
+File ini memasukkan beberapa transaksi yang sengaja dibuat invalid.
+
+Contoh:
+
+BAD_TX_001
+- negative amount
+
+BAD_TX_002
+- invalid wallet
+
+BAD_TX_003
+- transfer tanpa counterparty
+
+Expected flow:
+
+100,000 source transactions
+↓
+100,000 raw
+↓
+inject 3 bad transactions
+↓
+100,003 raw
+↓
+3 quarantined
+↓
+100,000 staging
+↓
+100,000 fact
+
+Bad transaction tetap disimpan di quarantine dan tidak masuk ke staging maupun analytics.
+
+---
+
+## 15. Continuous Integration
+
+GitHub Actions digunakan untuk menjalankan end-to-end pipeline test setiap push atau pull request ke branch main.
+
+CI melakukan:
+
+Start PostgreSQL
+↓
+Create schemas and tables
+↓
+Generate synthetic data
+↓
+Load source
+↓
+Extract source to raw
+↓
+Inject controlled bad data
+↓
+Quarantine invalid records
+↓
+Check quality threshold
+↓
+Load staging
+↓
+Load analytics warehouse
+↓
+Run pytest
+
+Workflow:
+
+.github/workflows/ci.yml
+
+---
+
+## 16. Project Structure
+
 digital-payment-data-platform/
 │
-├── src/
-│   ├── ingestion/
-│   ├── transformation/
-│   ├── validation/
-│   └── monitoring/
-│
 ├── dags/
-├── scripts/
-├── sql/
-├── tests/
-├── notebooks/
-├── docs/
+│   └── digital_payment_pipeline.py
+│
 ├── data/
+│   ├── source_seed/
 │   ├── raw/
 │   ├── processed/
 │   └── quarantine/
+│
+├── notebooks/
+│   └── 01_profile_generated_data.ipynb
+│
+├── sql/
+│   ├── source/
+│   ├── raw/
+│   ├── staging/
+│   ├── analytics/
+│   ├── validation/
+│   ├── quarantine/
+│   ├── monitoring/
+│   └── tests/
+│
+├── src/
+│   ├── ingestion/
+│   ├── validation/
+│   ├── transformation/
+│   └── monitoring/
+│
+├── tests/
+│   └── test_pipeline_data.py
+│
+├── docs/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
 ├── docker-compose.yml
 ├── requirements.txt
 ├── .gitignore
 └── README.md
-```
-
-### Directory Responsibilities
-
-`src/ingestion/`
-
-Responsible for generating, extracting, and loading source data.
-
-`src/transformation/`
-
-Contains transformation logic used to clean and prepare data.
-
-`src/validation/`
-
-Contains data quality and business-rule validation logic.
-
-`src/monitoring/`
-
-Contains pipeline health checks, metrics, and monitoring logic.
-
-`dags/`
-
-Contains Apache Airflow DAG definitions.
-
-`sql/`
-
-Contains database schema, seed data, transformations, warehouse models, and analytical queries.
-
-`scripts/`
-
-Contains operational and automation scripts.
-
-`tests/`
-
-Contains automated unit and integration tests.
-
-`notebooks/`
-
-Contains exploratory data profiling and validation notebooks.
-
-`data/`
-
-Contains locally generated raw, processed, and quarantined datasets.
-
-`docs/`
-
-Contains technical documentation, architecture diagrams, runbooks, and troubleshooting guides.
 
 ---
 
-## Current Progress
+## 17. Running Locally
 
-### Completed
+Clone repository:
 
-* Python virtual environment
-* Project directory structure
-* Docker environment
-* PostgreSQL container
-* PostgreSQL connectivity from Python
-* Database schemas
-* Relational source model
-* Primary key and foreign key relationships
-* Lookup tables
-* Source indexes
-* Synthetic users
-* Synthetic wallets
-* Synthetic merchants
-* Synthetic digital-wallet transactions
-* Multiple transaction types
-* Temporal transaction constraints
-* Realistic transaction distributions
+git clone <repository-url>
+cd digital-payment-data-platform
 
-### Current Dataset
+Create virtual environment:
 
-```text
-Users        : 10,000
-Wallets      : 10,000
-Merchants    : 1,000
-Transactions : 100,000
-```
+py -m venv .venv
+.venv\Scripts\activate
 
-Current transaction types:
+Install dependencies:
 
-```text
-PAYMENT
-TRANSFER
-TOP_UP
-WITHDRAWAL
-REFUND
-BILL_PAYMENT
-```
+pip install -r requirements.txt
 
-### In Progress
+Start infrastructure:
 
-* Data profiling
-* Referential integrity verification
-* Business-rule validation
-* Temporal validation
+docker compose up -d
 
-### Planned Next Steps
+Services:
 
-1. Profile generated source data
-2. Validate relational consistency
-3. Load synthetic data into PostgreSQL source tables
-4. Build raw ingestion layer
-5. Implement data quality rules
-6. Create quarantine handling
-7. Build staging transformations
-8. Create analytical star schema
-9. Implement analytical SQL
-10. Add Apache Airflow orchestration
-11. Add pipeline monitoring and retries
-12. Add Python automation
-13. Add automated tests
-14. Add GitHub Actions CI
-15. Integrate Google Cloud Storage
-16. Integrate BigQuery
-17. Build analytical dashboard
-18. Complete technical documentation
+PostgreSQL
+Airflow
+
+PostgreSQL host:
+
+127.0.0.1:55432
+
+Airflow UI:
+
+http://localhost:8080
+
+Run tests:
+
+pytest -v
+
+Run pipeline:
+
+Buka Airflow UI lalu trigger DAG:
+
+digital_payment_pipeline
 
 ---
 
-## Project Status
+## 18. Example Business Queries
 
-**Current Phase:** Synthetic source data generation and validation.
+Analytics warehouse digunakan untuk beberapa query seperti:
 
-The core relational model and synthetic transaction generator are operational. The next phase focuses on profiling the generated datasets and validating referential, temporal, and business-rule consistency before ingestion into PostgreSQL source tables.
+- Transaction volume per hari
+- Transaction value berdasarkan transaction type
+- Aktivitas transaksi berdasarkan kota user
+- Top merchant category
+- Top merchant berdasarkan transaction value
+- Monthly transaction trend
+- Weekday vs weekend activity
+- Transaction activity berdasarkan channel
+- Top users berdasarkan transaction value
+
+Query tersedia di:
+
+sql/analytics/04_business_queries.sql
+
+---
+
+## 19. Current Status
+
+Local MVP:
+
+Synthetic Data Generation   : Done
+PostgreSQL Source           : Done
+Raw Layer                   : Done
+Data Quality Validation     : Done
+Quarantine Handling         : Done
+Quality Threshold           : Done
+Staging Transformation      : Done
+Star Schema                 : Done
+Business Queries            : Done
+Airflow Orchestration       : Done
+Pipeline Monitoring         : Done
+pytest                      : Done
+GitHub Actions CI           : Done
+
+Next development:
+
+- Google Cloud Storage
+- BigQuery
+- Cloud deployment
+- Architecture diagram
+- Additional monitoring metrics
+- Incremental ingestion
+
+---
+
+## 20. Future Cloud Architecture
+
+Planned cloud extension:
+
+Operational Source
+        ↓
+Airflow
+        ↓
+Google Cloud Storage
+        ↓
+BigQuery Raw
+        ↓
+BigQuery Staging
+        ↓
+BigQuery Analytics
+        ↓
+Dashboard / Analytics
+
+Local MVP diselesaikan terlebih dahulu sebelum pipeline dikembangkan ke cloud.
